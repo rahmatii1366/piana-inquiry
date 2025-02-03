@@ -1,0 +1,188 @@
+version: "3.8"
+
+services:
+  inquiry-postgres:
+    container_name: inquiry-postgres
+    image: docker.arvancloud.ir/postgres:latest
+    environment:
+      POSTGRES_USER: 'user'
+      POSTGRES_PASSWORD: 'pass'
+      POSTGRES_DB: 'piana_inquiry_db'
+    volumes:
+      - 'inquiry-postgres-data:/var/lib/postgresql/data'
+    ports:
+      - '15433:5432'
+    expose:
+      - '15433'
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.2
+
+  oidc-redis-master:
+    image: docker.arvancloud.ir/redis:latest
+    container_name: oidc-redis-master
+    hostname: redis-master
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/master:/data
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--repl-diskless-load",
+        "on-empty-db",
+        "--replica-announce-ip",
+        "${HOST_IP}",
+        "--replica-announce-port",
+        "6379",
+        "--protected-mode",
+        "no"
+      ]
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.3
+
+  oidc-redis-slave-1:
+    image: docker.arvancloud.ir/redis:latest
+    container_name: oidc-redis-slave-1
+    hostname: redis-slave-1
+    depends_on:
+      - oidc-redis-master
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./data/slave1:/data
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--replicaof",
+        "oidc-redis-master",
+        "6379",
+        "--repl-diskless-load",
+        "on-empty-db",
+        "--replica-announce-ip",
+        "${HOST_IP}",
+        "--replica-announce-port",
+        "6380",
+        "--protected-mode",
+        "no"
+      ]
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.4
+
+
+  oidc-redis-slave-2:
+    image: docker.arvancloud.ir/redis:latest
+    container_name: oidc-redis-slave-2
+    hostname: redis-slave-2
+    depends_on:
+      - oidc-redis-master
+    ports:
+      - "6381:6379"
+    volumes:
+      - ./data/slave2:/data
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--replicaof",
+        "oidc-redis-master",
+        "6379",
+        "--repl-diskless-load",
+        "on-empty-db",
+        "--replica-announce-ip",
+        "${HOST_IP}",
+        "--replica-announce-port",
+        "6381",
+        "--protected-mode",
+        "no"
+      ]
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.5
+
+  oidc-sentinel-1:
+    image: docker.arvancloud.ir/redis:latest
+    container_name: oidc-sentinel-1
+    hostname: sentinel-1
+    depends_on:
+      - oidc-redis-master
+    ports:
+      - "26379:26379"
+    command: >
+      sh -c 'echo "bind 0.0.0.0" > /etc/sentinel.conf &&
+            echo "sentinel monitor oidc-redis-master ${HOST_IP} 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel down-after-milliseconds oidc-redis-master 10000" >> /etc/sentinel.conf &&
+            echo "sentinel failover-timeout oidc-redis-master 10000" >> /etc/sentinel.conf &&
+            echo "sentinel parallel-syncs oidc-redis-master 1" >> /etc/sentinel.conf &&
+            redis-sentinel /etc/sentinel.conf'
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.6
+
+  oidc-sentinel-2:
+    image: docker.arvancloud.ir/redis:latest
+    container_name: oidc-sentinel-2
+    hostname: sentinel-2
+    depends_on:
+      - oidc-redis-master
+    ports:
+      - "26380:26379"
+    command: >
+      sh -c 'echo "bind 0.0.0.0" > /etc/sentinel.conf &&
+            echo "sentinel monitor oidc-redis-master ${HOST_IP} 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel down-after-milliseconds oidc-redis-master 10000" >> /etc/sentinel.conf &&
+            echo "sentinel failover-timeout oidc-redis-master 10000" >> /etc/sentinel.conf &&
+            echo "sentinel parallel-syncs oidc-redis-master 1" >> /etc/sentinel.conf &&
+            redis-sentinel /etc/sentinel.conf'
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.7
+
+  oidc-sentinel-3:
+    image: docker.arvancloud.ir/redis:latest
+    container_name: oidc-sentinel-3
+    hostname: sentinel-3
+    depends_on:
+      - oidc-redis-master
+    ports:
+      - "26381:26379"
+    command: >
+      sh -c 'echo "bind 0.0.0.0" > /etc/sentinel.conf &&
+            echo "sentinel monitor oidc-redis-master ${HOST_IP} 6379 2" >> /etc/sentinel.conf &&
+            echo "sentinel resolve-hostnames yes" >> /etc/sentinel.conf &&
+            echo "sentinel down-after-milliseconds oidc-redis-master 10000" >> /etc/sentinel.conf &&
+            echo "sentinel failover-timeout oidc-redis-master 10000" >> /etc/sentinel.conf &&
+            echo "sentinel parallel-syncs oidc-redis-master 1" >> /etc/sentinel.conf &&
+            redis-sentinel /etc/sentinel.conf'
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.8
+
+
+  oidc-redisinsight:
+    image: docker.arvancloud.ir/redis/redisinsight:latest
+    container_name: oidc-redisinsight
+    ports:
+      - "5540:5540"
+    networks:
+      inquiry-net:
+        ipv4_address: 172.24.0.9
+
+volumes:
+  inquiry-postgres-data:
+
+networks:
+  inquiry-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16

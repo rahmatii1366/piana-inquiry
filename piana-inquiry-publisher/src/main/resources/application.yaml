@@ -1,0 +1,85 @@
+server:
+  ssl:
+    # The format used for the keystore. It could be set to JKS in case it is a JKS file
+    key-store-type: PKCS12
+    # The path to the keystore containing the certificate
+    key-store: classpath:node1.p12
+    # The password used to generate the certificate
+    key-store-password: tentwo
+spring:
+  application:
+    name: piana-inquiry
+  datasource:
+    url: 'jdbc:postgresql://localhost:15433/piana_inquiry_db'
+    username: 'user'
+    password: 'pass'
+    driverClassName: 'org.postgresql.Driver'
+    hikari:
+      maximum-pool-size: 40
+
+piana:
+  tools:
+    redisCache:
+      enabled: true
+      sentinel: true
+      sentinels: 'localhost:26379,localhost:26380,localhost:26381'
+      master: 'oidc-redis-master'
+      prefix: 'piana.inquiry'
+    httpClient:
+      clients:
+        - name: taban
+          is-secure: true
+          host: sw.tabanapisis.org
+          port: 9000
+#          baseUrl:
+          connectionTimeout: 30
+          socketTimeout: 30
+          timeToLive: 120
+#          LIFO, FIFO
+          poolReusePolicy: LIFO
+#          LAX, STRICT
+          poolConcurrencyPolicy: STRICT
+          sslSupport: false
+          tlsVersions:
+            - V_1_3
+            - V_1_2
+          trustStore:
+        - name: self
+          is-secure: true
+          host: localhost
+          port: 8080
+          #          baseUrl:
+          connectionTimeout: 30
+          socketTimeout: 30
+          timeToLive: 120
+          #          LIFO, FIFO
+          poolReusePolicy: LIFO
+          #          LAX, STRICT
+          poolConcurrencyPolicy: STRICT
+          sslSupport: false
+          tlsVersions:
+            - V_1_3
+            - V_1_2
+        - name: taban
+          is-secure: true
+          host: apignaf.post.ir
+          port: 8080
+  config:
+    thirdParties:
+      taban:
+        token: 'dDJ5UXB2bHNaeUhSMF83ZmlxanIwYlg5VUZjYTpxQlg3bldlNHVpZnBIVzlzMG5jVEV5a0Y2S2dh'
+      gnaf:
+        username: 'username'
+        password: 'password'
+
+oidc-ui:
+  controller:
+    enabled: true
+    base-url:
+oidc:
+  service:
+    jwt-token:
+      secretKey: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      jwtExpiration: 86400000 # a day
+      issuer: 'https://oidc-user.ir'
+      audience: oidc-user

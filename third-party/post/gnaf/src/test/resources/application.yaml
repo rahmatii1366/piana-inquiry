@@ -1,0 +1,15 @@
+piana:
+  config:
+    thirdParties:
+      taban:
+        token: 'dDJ5UXB2bHNaeUhSMF83ZmlxanIwYlg5VUZjYTpxQlg3bldlNHVpZnBIVzlzMG5jVEV5a0Y2S2dh'
+    httpClient:
+      clients:
+        - name: taban
+          is-secure: true
+          host: sw.tabanapisis.org
+          port: 9000
+
+#logging:
+#  level:
+#    org.apache.hc.client5.http: DEBUG
